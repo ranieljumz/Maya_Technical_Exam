@@ -1,16 +1,20 @@
-# mayaapp
+# MayaApp
 
-A new Flutter project.
+A simple, senior-friendly e-wallet app built in Flutter with Cubit & Clean Architecture.  
+Backend powered by local Strapi.
 
-## Getting Started
+## Requirements
 
-This project is a starting point for a Flutter application.
+- Flutter SDK
+- Node.js & npm
+- Strapi CLI
 
-A few resources to get you started if this is your first Flutter project:
+## Setup Backend
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd backend
+npm install
+npm run dev
+# Add collections: Wallet, Transaction
+# Enable auth/local
+```
