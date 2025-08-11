@@ -30,9 +30,6 @@ This project is built using **Clean Architecture** to ensure a separation of con
 
 ## 📐 System Design & Architecture
 
-<details>
-<summary><strong>Click to expand Design Documentation & Diagrams</strong></summary>
-
 ### Architectural Overview
 
 The application is built using **Clean Architecture**. This paradigm separates the code into three distinct layers, ensuring a scalable, maintainable, and testable codebase:
@@ -135,8 +132,6 @@ sequenceDiagram
     SendMoneyCubit-->>SendMoneyScreen: updates UI
     SendMoneyScreen-->>User: Shows Success Modal
 ```
-
-</details>
 
 ---
 
