@@ -2,9 +2,6 @@
 
 A 4-screen Flutter e-wallet application designed for simplicity and ease of use. It demonstrates a modern Flutter development stack including Clean Architecture, Cubit for state management, and a pre-configured Strapi backend.
 
-![MayaApp Screenshot Placeholder](https://via.placeholder.com/800x450.png?text=Add+a+Screenshot+or+GIF+of+your+App+here!)
-_(Replace the image above with a screenshot or GIF of the running application)_
-
 ---
 
 ## ✨ Features
@@ -31,6 +28,118 @@ This project is built using **Clean Architecture** to ensure a separation of con
 
 ---
 
+## 📐 System Design & Architecture
+
+<details>
+<summary><strong>Click to expand Design Documentation & Diagrams</strong></summary>
+
+### Architectural Overview
+
+The application is built using **Clean Architecture**. This paradigm separates the code into three distinct layers, ensuring a scalable, maintainable, and testable codebase:
+
+- **Domain Layer**: This is the core of the application. It contains the business logic, entities (e.g., `User`, `Transaction`), and abstract repository contracts. It has no dependencies on any framework or external package.
+
+- **Data Layer**: This layer is responsible for all data operations. It implements the repository contracts defined in the Domain layer and handles the communication with the Strapi API via a `RemoteDataSource`. It's also responsible for converting API JSON responses into strongly-typed Dart objects (Models).
+
+- **Presentation Layer**: This layer contains all UI-related components (Screens, Widgets) and the state management logic (Cubits). It depends on the Domain layer's use cases to trigger business logic and reacts to state changes emitted by the Cubits to update the UI.
+
+**State Management**: We use **Cubit** (from the `flutter_bloc` package) for its simplicity and minimal boilerplate, making it ideal for managing the state of individual screens.
+
+**Dependency Injection**: The **`get_it`** package is used as a Service Locator to provide dependencies (e.g., Repositories, Use Cases) throughout the app, effectively decoupling the layers.
+
+**API Design**: The **Strapi** backend exposes a REST API. A key design choice is the use of a custom controller (`/api/wallet/send`) for the "Send Money" feature. This ensures the entire operation—debiting the sender, crediting the recipient, and creating transaction logs—is **atomic**. If any part of the process fails, the entire database transaction is rolled back, preventing data inconsistencies.
+
+### Class Diagram (Fetch Transaction History)
+
+This diagram shows the relationship between the major classes involved in fetching and displaying the transaction history.
+
+```mermaid
+classDiagram
+    direction LR
+    class TransactionHistoryScreen {
+        +build()
+        +BlocBuilder()
+    }
+    class TransactionsCubit {
+        +fetchTransactions()
+        +List~Transaction~
+    }
+    class GetTransactions {
+        <<UseCase>>
+        +call()
+    }
+    class WalletRepository {
+        <<Interface>>
+        +getTransactions()
+    }
+    class WalletRepositoryImpl {
+        +getTransactions()
+    }
+    class RemoteDataSource {
+        <<Interface>>
+        +getTransactions()
+    }
+    class TransactionModel {
+        +fromJson()
+    }
+
+    subgraph Presentation Layer
+        TransactionHistoryScreen
+        TransactionsCubit
+    end
+
+    subgraph Domain Layer
+        GetTransactions
+        WalletRepository
+    end
+
+    subgraph Data Layer
+        WalletRepositoryImpl
+        RemoteDataSource
+        TransactionModel
+    end
+
+    TransactionHistoryScreen ..> TransactionsCubit : "listens to"
+    TransactionsCubit ..> GetTransactions : "uses"
+    GetTransactions ..> WalletRepository : "depends on"
+    WalletRepository <|-- WalletRepositoryImpl : "implements"
+    WalletRepositoryImpl ..> RemoteDataSource : "uses"
+    RemoteDataSource ..> TransactionModel : "creates"
+```
+
+### Sequence Diagram (Send Money Flow)
+
+This diagram illustrates the sequence of interactions between components when a user performs the "Send Money" action.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SendMoneyScreen
+    participant SendMoneyCubit
+    participant SendMoneyUseCase
+    participant WalletRepository
+    participant StrapiAPI
+
+    User->>SendMoneyScreen: Taps 'Confirm' button
+    SendMoneyScreen->>SendMoneyCubit: executeSendMoney(details)
+    SendMoneyCubit->>SendMoneyCubit: emit(LoadingState)
+    SendMoneyCubit->>SendMoneyUseCase: call(details)
+    SendMoneyUseCase->>WalletRepository: sendMoney(details)
+    WalletRepository->>StrapiAPI: POST /api/wallet/send
+    activate StrapiAPI
+    StrapiAPI-->>WalletRepository: 200 OK (Success)
+    deactivate StrapiAPI
+    WalletRepository-->>SendMoneyUseCase: returns success
+    SendMoneyUseCase-->>SendMoneyCubit: returns success
+    SendMoneyCubit->>SendMoneyCubit: emit(SuccessState)
+    SendMoneyCubit-->>SendMoneyScreen: updates UI
+    SendMoneyScreen-->>User: Shows Success Modal
+```
+
+</details>
+
+---
+
 ## 🚀 Getting Started
 
 Follow these steps to get the application running on your local machine. This involves setting up both the backend and the frontend.
@@ -50,8 +159,8 @@ The backend is a pre-configured Strapi project provided in a separate repository
 
     ```bash
     # Replace the URL with your actual backend repository URL
-    git clone https://github.com/your-username/mayaapp-backend.git
-    cd mayaapp-backend
+    git clone https://github.com/ranieljumz/Maya_Technical_Exam.git
+    cd backend
     ```
 
 2.  **Install Dependencies:**
@@ -105,35 +214,27 @@ The backend is a pre-configured Strapi project provided in a separate repository
 
 ### 2. Frontend Setup (Flutter)
 
-1.  **Clone the Flutter Repository:**
+1.  **Install Dependencies:**
 
     ```bash
-    # Replace the URL with your actual frontend repository URL
-    git clone https://github.com/your-username/mayaapp.git
-    cd mayaapp
-    ```
-
-2.  **Install Dependencies:**
-
-    ```bash
+    cd ..
     flutter pub get
     ```
 
-3.  **Configure API Endpoint URL:** This is a critical step. The code is already configured to automatically use the correct IP address depending on the platform (iOS vs. Android). No changes should be needed.
+2.  **Configure API Endpoint URL:** This is a critical step. The code is using localhost as its IP Address for the API Server. Run adb reverse for the local device to be able to use localhost.
+    Or modify the IP Address in the code service_locator.dart if you are using a simulator
 
-    ```dart
-    // In lib/service_locator.dart
-    String getBaseUrl() {
-      if (Platform.isAndroid) {
-        // For Android Emulator, 10.0.2.2 points to the host machine's localhost
-        return 'http://10.0.2.2:1337/api';
-      }
-      // For iOS Simulator, Web, or Desktop, localhost works directly
-      return 'http://localhost:1337/api';
-    }
-    ```
+        LOCAL DEVICE
+        ```bash
+        adb reverse tcp:1337 tcp:1337
+        ```
 
-4.  **Run the App:**
+        Simulator
+        ```dart
+        baseUrl: http://10.0.2.2:1337/api
+        ```
+
+3.  **Run the App:**
     ```bash
     flutter run
     ```
@@ -161,7 +262,7 @@ Unit tests are provided for the business logic controllers (Cubits).
 - **Transaction Logic:** Handled by a custom controller to ensure atomicity.
   - **Endpoint:** `POST /api/wallet/send`
   - **Functionality:** Debits the sender, credits the recipient, and creates two transaction log entries (`debit` and `credit`) in a single, secure database transaction.
-- **Fetching History:** Uses `GET /api/transactions` with query parameters to populate relational data (`?populate=*`) and filter by user involvement.
+- **Fetching History:** Uses `GET /api/transactions` with query parameters to populate relational data and filter by user involvement.
 
 ---
 
