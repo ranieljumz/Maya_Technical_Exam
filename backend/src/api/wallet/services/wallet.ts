@@ -1,0 +1,5 @@
+/**
+ * wallet service
+ */
+
+export default () => ({});
